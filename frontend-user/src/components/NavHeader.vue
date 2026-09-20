@@ -7,8 +7,8 @@
       </router-link>
       
       <nav class="nav-menu" :class="{ 'nav-open': menuOpen }">
-        <router-link 
-          v-for="item in menuItems" 
+        <router-link
+          v-for="item in menuItems"
           :key="item.path"
           :to="item.path"
           class="nav-item"
@@ -17,8 +17,31 @@
           {{ item.name }}
         </router-link>
       </nav>
-      
+
       <div class="nav-actions">
+        <el-dropdown trigger="click" @command="handleRoleCommand">
+          <button type="button" class="role-switch">
+            <el-icon :size="16"><User /></el-icon>
+            <span class="role-label">{{ currentRoleLabel }}</span>
+            <el-icon :size="12"><ArrowDown /></el-icon>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                v-for="role in roleOptions"
+                :key="role.value"
+                :command="role.value"
+                :class="{ 'role-active': role.value === session.role }"
+              >
+                {{ role.label }}
+                <span class="role-desc">{{ role.description }}</span>
+              </el-dropdown-item>
+              <el-dropdown-item divided command="__admin__">
+                规则管理后台
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
         <el-button type="primary" round @click="$router.push('/contact')">
           联系我们
         </el-button>
@@ -33,15 +56,38 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ROLE_OPTIONS } from '@/recommender/constants.js'
+import { useSession } from '@/recommender/session.js'
+
+const router = useRouter()
+const { session, setRole } = useSession()
 
 const menuItems = [
   { name: '首页', path: '/' },
   { name: '关于我们', path: '/about' },
   { name: '产品服务', path: '/products' },
   { name: '案例展示', path: '/cases' },
+  { name: '方案推荐', path: '/recommend' },
   { name: '联系我们', path: '/contact' }
 ]
+
+const roleOptions = ROLE_OPTIONS
+
+const currentRoleLabel = computed(() => {
+  const hit = ROLE_OPTIONS.find((r) => r.value === session.role)
+  return hit ? hit.label : '选择角色'
+})
+
+const handleRoleCommand = (command) => {
+  if (command === '__admin__') {
+    menuOpen.value = false
+    router.push('/admin/rules')
+    return
+  }
+  setRole(command)
+}
 
 const isScrolled = ref(false)
 const menuOpen = ref(false)
@@ -146,6 +192,36 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: $spacing-md;
+}
+
+.role-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid $border-color;
+  border-radius: 20px;
+  background: #fff;
+  color: $text-regular;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    border-color: $primary-color;
+    color: $primary-color;
+  }
+}
+
+.role-desc {
+  display: block;
+  font-size: $font-size-xs;
+  color: $text-placeholder;
+}
+
+.role-active {
+  color: $primary-color;
+  font-weight: 600;
 }
 
 .menu-toggle {
